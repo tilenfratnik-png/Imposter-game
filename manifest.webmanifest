@@ -1,0 +1,15 @@
+{
+  "id": "./",
+  "name": "Vsiljivec – igra blefiranja",
+  "short_name": "Vsiljivec",
+  "description": "Družabna igra blefiranja za prijatelje.",
+  "lang": "sl-SI",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f0f0f0",
+  "theme_color": "#17151f",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
