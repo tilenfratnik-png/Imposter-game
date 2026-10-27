@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17151f">
+<meta name="description" content="Vsiljivec – družabna igra blefiranja.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Vsiljivec</title>
+<style>
+  :root {
+    --bg: #f0f0f0;
+    --card: #ffffff;
+    --ink: #242824;
+    --muted: #777d77;
+    --line: #e8ebe6;
+    --green: #dff1e6;
+    --green-ink: #286747;
+    --lavender: #eee9fb;
+    --lavender-ink: #62519a;
+    --peach: #fff0e6;
+    --peach-ink: #99582f;
+    --shadow: 0 12px 35px rgba(35, 48, 39, .055);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; justify-content: center; padding: 18px 15px calc(22px + env(safe-area-inset-bottom));
+  }
+  button, input, select { font: inherit; }
+  #installBar { position:absolute; top:14px; left:14px; z-index:10; padding:0; background:transparent; }
+  #installAppBtn { display:none; width:40px; height:40px; padding:0; border:0; border-radius:12px; background:#25212f; color:white; font-size:19px; font-weight:700; box-shadow:0 5px 18px rgba(0,0,0,.2); cursor:pointer; }
+  #installAppBtn:focus-visible { outline:3px solid #c6ff35; outline-offset:3px; }
+  button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .app { width: 100%; max-width: 460px; margin: auto; }
+  header { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; margin: 2px 2px 24px; min-height:72px; }
+  .brand { display:flex; flex-direction:column; align-items:center; gap:5px; font-size:17px; font-weight:950; letter-spacing:.045em; }
+  .brand-mark { display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:#c6ff35; color:#222; font-size:19px; }
+  .offline { display:none; }
+  .close-app { position:absolute; top:2px; right:0; width:38px; height:38px; border:0; border-radius:50%; background:#e3e3e3; color:#777; font-size:22px; line-height:1; }
+  .brand-name { font-weight:950; font-stretch:condensed; }
+  .screen { display:none; animation: rise .22s ease-out; }
+  .screen.active { display:block; }
+  @keyframes rise { from { opacity:0; transform:translateY(5px); } to {opacity:1; transform:translateY(0);} }
+  .eyebrow { color:var(--green-ink); font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; margin-bottom:10px; }
+  h1 { font-size:clamp(32px, 9vw, 43px); line-height:1.04; letter-spacing:-1.7px; margin:0 0 13px; }
+  h2 { font-size:25px; line-height:1.12; letter-spacing:-.8px; margin:0 0 9px; }
+  p { color:var(--muted); line-height:1.55; margin:0; font-size:14px; }
+  .hero { padding: 22px 4px 24px; }
+  .hero p { max-width:330px; }
+  .hero-art { height:138px; margin:4px 0 23px; border:1px solid var(--line); background:linear-gradient(135deg,#f0f7f1,#f5f1fc 55%,#fff5ee); border-radius:24px; display:flex; align-items:center; justify-content:center; gap:11px; }
+  .person { width:66px; height:80px; border-radius:18px; background:#fff; border:1px solid rgba(80,90,80,.09); box-shadow:var(--shadow); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; transform:rotate(-7deg); }
+  .person:nth-child(2) { transform:translateY(-8px) rotate(2deg); background:#e7f3ea; }
+  .person:nth-child(3) { transform:rotate(7deg); background:#fff; }
+  .face { width:27px; height:27px; border-radius:50%; background:#d5e9db; position:relative; }
+  .person:nth-child(2) .face { background:#d9d0f4; }
+  .person:nth-child(3) .face { background:#f8ddc9; }
+  .face:before,.face:after { content:""; position:absolute; width:3px; height:3px; background:#5e6b60; border-radius:50%; top:11px; }
+  .face:before { left:7px; } .face:after { right:7px; }
+  .body-shape { width:32px; height:13px; border-radius:12px 12px 7px 7px; background:#b9d9c4; }
+  .person:nth-child(2) .body-shape { background:#c9bdec; }
+  .person:nth-child(3) .body-shape { background:#f2c6a7; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:19px; box-shadow:var(--shadow); margin-bottom:13px; }
+  label { display:block; font-size:12px; font-weight:750; color:#525951; margin:0 0 8px; }
+  input, select { width:100%; min-height:48px; border:1px solid #e1e5df; border-radius:13px; background:#fff; color:var(--ink); padding:0 13px; outline:none; }
+  input:focus, select:focus { border-color:#94c6a6; box-shadow:0 0 0 3px rgba(148,198,166,.18); }
+  .field { margin-bottom:17px; }
+  .field:last-child { margin-bottom:0; }
+  .hint { font-size:12px; margin-top:7px; }
+  .primary, .secondary, .quiet { width:100%; min-height:51px; border-radius:14px; border:0; font-weight:800; transition:transform .12s, opacity .12s; }
+  .primary { background:#2e6d4b; color:white; box-shadow:0 5px 12px rgba(46,109,75,.16); }
+  .secondary { background:#edf4ee; color:#2d6848; }
+  .quiet { background:transparent; color:var(--muted); min-height:42px; font-size:13px; }
+  button:active { transform:scale(.985); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .button-gap { display:grid; gap:9px; margin-top:16px; }
+  .player-list { display:grid; gap:8px; margin-top:12px; }
+  .player-row { display:flex; align-items:center; gap:10px; }
+  .player-row input { flex:1; min-width:0; }
+  .custom-word-row { display:grid; grid-template-columns:1fr 1fr 34px; gap:6px; align-items:center; }
+  .custom-word-row input { min-width:0; padding:0 9px; font-size:12px; min-height:43px; }
+  .custom-word-row .remove { width:32px; height:34px; }
+  .custom-word-row .word-index { grid-column:1 / -1; color:var(--muted); font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; margin-bottom:-3px; }
+  .custom-hint { color:var(--muted); font-size:11px; margin:0 0 3px; }
+  .player-num { width:29px; height:29px; border-radius:10px; background:#f0f3ef; display:grid; place-items:center; color:#6a746a; font-size:12px; font-weight:800; flex-shrink:0; }
+  .remove { border:0; background:#f7f3f1; color:#9a7668; width:38px; height:38px; border-radius:11px; font-size:20px; }
+  .category-management { margin: -3px 0 18px; padding:12px; border:1px solid var(--line); border-radius:15px; background:#fafbf9; }
+  .category-io { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+  .category-io .small-action { padding:10px 8px; border-radius:10px; background:#edf4ee; text-align:center; }
+  .new-category { padding-top:12px; }
+  .new-category label { margin-bottom:7px; }
+  .new-category-row { display:flex; gap:8px; align-items:center; }
+  .new-category-row input { min-width:0; flex:1; min-height:44px; }
+  .create-category-btn { border:0; border-radius:11px; padding:0 12px; min-height:44px; background:#2e6d4b; color:#fff; font-weight:800; font-size:13px; white-space:nowrap; }
+  .category-bottom { margin-top:5px; }
+  .delete-category { color:#8b6255; font-size:12px; }
+  .category-management .hint { margin:6px 0 0; }
+  .small-action { border:0; background:transparent; color:var(--green-ink); font-weight:800; font-size:13px; padding:10px 0 0; }
+  .topline { display:flex; align-items:center; justify-content:space-between; margin-bottom:19px; color:var(--muted); font-size:12px; font-weight:750; }
+  .pill { border-radius:999px; padding:7px 10px; background:#edf4ee; color:#2e6d4b; font-size:11px; font-weight:800; }
+  .reveal-screen { padding-top:2px; }
+  .reveal-topline { display:flex; align-items:center; justify-content:space-between; margin:0 2px 15px; color:#222; font-size:12px; font-weight:900; letter-spacing:.06em; }
+  .player-number { font-size:13px; font-weight:950; letter-spacing:.07em; }
+  .reveal-card { --player-bg:#ffeb3b; --player-soft:#fff0a8; position:relative; overflow:hidden; background:var(--player-bg); border:0; border-radius:24px; box-shadow:0 8px 0 rgba(0,0,0,.035); text-align:center; padding:20px 18px 22px; min-height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:background-color .18s ease; }
+  .player-name { position:relative; z-index:2; width:100%; font-size:clamp(34px, 9vw, 48px); line-height:1.05; font-weight:950; letter-spacing:-1px; color:#222; margin:0 0 18px; overflow-wrap:anywhere; }
+  .secret-box { display:flex; align-items:center; justify-content:center; min-height:100px; width:100%; padding:9px; border:3px solid #222; border-radius:12px; background:#fff; color:#222; font-size:clamp(21px,6vw,30px); line-height:1.1; font-weight:950; white-space:pre-line; overflow-wrap:anywhere; transform:translateY(44px); }
+  .secret-box.secret-imposter { background:#fff0e6; color:#9a5327; border-color:#9a5327; font-size:clamp(20px,5.5vw,28px); }
+  .secret-box.secret-word { background:#fff; color:#222; border-color:#222; }
+  .card-cover { position:absolute; z-index:3; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:13px; padding:20px; background:var(--player-bg); color:#222; touch-action:none; user-select:none; -webkit-user-select:none; will-change:transform; transform:translateY(0); transition:transform .2s cubic-bezier(.2,.8,.2,1); border-radius:0 0 26px 26px; }
+  .card-cover.dragging { transition:none; }
+  .cover-icon { font-size:43px; line-height:1; }
+  .cover-label { font-size:12px; font-weight:950; letter-spacing:.07em; }
+  .cover-hint { font-size:12px; color:#454545; text-align:center; line-height:1.4; }
+  @keyframes secretPop { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
+  .next-player { margin-top:42px; background:#222; color:white; min-height:62px; border-radius:27px; box-shadow:none; font-size:13px; letter-spacing:.025em; display:flex; align-items:center; justify-content:center; gap:11px; }
+  .next-player:before { content:'↗'; font-size:21px; font-weight:500; }
+  .next-player:disabled { opacity:.38; }
+  .warning { background:var(--peach); color:var(--peach-ink); padding:12px 13px; border-radius:13px; font-size:12px; line-height:1.45; margin-top:19px; }
+  .hidden-card { text-align:center; padding:30px 20px; }
+  .lock { width:74px; height:74px; margin:0 auto 20px; border-radius:24px; background:#edf4ee; display:grid; place-items:center; font-size:31px; }
+  .progress { display:flex; gap:5px; margin:0 0 19px; }
+  .progress span { height:4px; flex:1; border-radius:9px; background:#e7eae5; }
+  .progress span.done { background:#76ad88; }
+  .role-imposter { background:#fff0e6; color:#9a5327; }
+  .role-word { background:#e5f3e9; color:#286747; }
+  .results-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); font-size:14px; }
+  .results-row:last-child { border-bottom:0; }
+  .result-tag { font-size:11px; padding:5px 8px; border-radius:999px; font-weight:800; }
+  .footer { text-align:center; color:#a0a69f; font-size:11px; margin:24px 0 2px; }
+  .error { color:#a44343; font-size:12px; margin-top:10px; display:none; }
+  .error.show { display:block; }
+  @media (max-height:700px) { body { padding-top:10px; } header { margin-bottom:14px; } .hero { padding-top:8px; } .hero-art { height:105px; margin-bottom:15px; } .reveal-card { min-height:250px; padding:16px 14px; } .next-player { margin-top:24px; } }
+  @media (min-width:600px) { .reveal-card { min-height:300px; } .next-player { max-width:360px; margin-left:auto; margin-right:auto; } }
+</style>
+</head>
+<body>
+<div id="installBar" aria-label="Namestitev igre">
+  <button id="installAppBtn" type="button" aria-label="Namesti Vsiljivca" title="Namesti Vsiljivca">📲</button>
+</div>
+<main class="app">
+  <header>
+    <div class="brand"><div class="brand-mark">✦</div><span class="brand-name">IMPOSTER WHO?</span></div>
+    <button class="close-app" id="closeApp" type="button" aria-label="Nazaj v glavni meni">×</button>
+    <div class="offline">Works offline</div>
+  </header>
+
+  <section class="screen active" id="home">
+    <div class="hero">
+      <div class="eyebrow">Mala igra blefiranja</div>
+      <h1>Nekdo med vami<br>ne spada zraven.</h1>
+      <p>Vsi dobijo isto skrivno besedo. Razen vsiljivca. Se bo znal zliti z množico?</p>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="person"><div class="face"></div><div class="body-shape"></div></div>
+      <div class="person"><div class="face"></div><div class="body-shape"></div></div>
+      <div class="person"><div class="face"></div><div class="body-shape"></div></div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label for="category">Kategorija besed</label>
+        <select id="category">
+          <option value="mixed">Mešane besede</option>
+          <option value="food">Hrana in pijača</option>
+          <option value="animals">Živali</option>
+          <option value="places">Kraji</option>
+          <option value="objects">Predmeti</option>
+          <option value="movies">Filmi in junaki</option>
+          <option value="custom">Moje besede</option>
+        </select>
+      </div>
+      <div class="category-management" id="categoryTools">
+        <div class="category-io">
+          <button class="small-action" id="exportData" type="button">↓ Izvozi JSON</button>
+          <button class="small-action" id="importData" type="button">↑ Uvozi JSON</button>
+          <input id="importFile" type="file" accept=".json,application/json" style="display:none">
+        </div>
+        <div class="new-category">
+          <label for="newCategoryName">Ustvari svojo kategorijo</label>
+          <div class="new-category-row">
+            <input id="newCategoryName" type="text" maxlength="40" placeholder="Npr. Kuhanje">
+            <button class="create-category-btn" id="createCategory" type="button">＋ Ustvari</button>
+          </div>
+        </div>
+        <div class="category-bottom">
+          <button class="small-action delete-category" id="deleteCategory" type="button">Izbriši izbrano kategorijo</button>
+        </div>
+        <p id="dataMessage" class="hint" aria-live="polite"></p>
+      </div>
+      <div class="field" id="customWordsField" style="display:none">
+        <label id="wordsEditorTitle">Lastne besede</label>
+        <p class="hint" style="margin:0 0 12px">Dodaj besede in kratke namige. Spremembe se samodejno shranijo v tem brskalniku.</p>
+        <div id="customWordsList" style="display:grid;gap:10px"></div>
+        <button class="small-action" id="addCustomWord" type="button">＋ Dodaj besedo</button>
+      </div>
+      <div class="field">
+        <label for="imposterCount">Število vsiljivcev</label>
+        <select id="imposterCount">
+          <option value="1">1 vsiljivec</option>
+          <option value="2">2 vsiljivca</option>
+          <option value="3">3 vsiljivci</option>
+        </select>
+      </div>
+      <button class="primary" id="setupBtn">Nastavi igralce <span aria-hidden="true">→</span></button>
+      <p class="hint">Najbolje deluje s 4–10 igralci. Telefon si podajajte.</p>
+    </div>
+  </section>
+
+  <section class="screen" id="setup">
+    <div class="topline"><span>NASTAVITEV IGRE</span><span class="pill">1. korak od 2</span></div>
+    <h2>Kdo igra?</h2>
+    <p style="margin-bottom:20px">Vnesite imena vseh igralcev. Med tipkanjem naj bo zaslon obrnjen proti vam.</p>
+    <div class="card">
+      <label>Imena igralcev</label>
+      <div class="player-list" id="playerList"></div>
+      <button class="small-action" id="addPlayer">＋ Dodaj igralca</button>
+      <div class="error" id="setupError"></div>
+    </div>
+    <div class="button-gap">
+      <button class="primary" id="startBtn">Začni igro →</button>
+      <button class="quiet" id="backHome">Nazaj</button>
+    </div>
+  </section>
+
+  <section class="screen reveal-screen" id="reveal">
+    <div class="reveal-topline"><span class="player-number" id="revealCount">IGRALEC 1</span></div>
+    <div class="card reveal-card" id="revealCard">
+      <div class="player-name" id="currentPlayerName">Igralec 1</div>
+      <div class="secret-box" id="secretWord" aria-live="polite">Beseda</div>
+      <div class="card-cover" id="cardCover" aria-label="Lift and hold to peek at your role">
+        <span class="cover-icon" aria-hidden="true">↑</span>
+        <span class="cover-label">DVIGNI ZA POGLED</span>
+        <span class="cover-hint">Drži prst in dvigni kartico navzgor</span>
+      </div>
+    </div>
+    <button class="primary next-player" id="hideBtn" disabled>NASLEDNJI IGRALEC</button>
+  </section>
+
+  <section class="screen" id="ready">
+    <div class="topline"><span>VSI SO PRIPRAVLJENI</span><span class="pill">Igra se začne</span></div>
+    <div class="card hidden-card">
+      <div class="lock">☝</div>
+      <h2>Čas za igro.</h2>
+      <p>Izmenično povejte namig za svojo besedo. Ne bodite preveč očitni. Vsiljivec naj poskuša ostati neopažen.</p>
+      <div class="warning">Ko ste pripravljeni, se pogovorite in glasujte, kdo je po vašem mnenju vsiljivec. Telefon ne bo razkril odgovorov, dokler ne končate kroga.</div>
+    </div>
+    <div class="button-gap">
+      <button class="primary" id="resultsBtn">Končaj krog in razkrij vloge</button>
+      <button class="secondary" id="newRoundBtn">Igraj nov krog</button>
+    </div>
+  </section>
+
+  <section class="screen" id="results">
+    <div class="topline"><span>KROG RAZKRIT</span><span class="pill">Dobro blefiranje</span></div>
+    <h2>Poglejmo, kdo je bil kdo.</h2>
+    <p style="margin-bottom:17px">Pogovorite se, kdo je koga pretental, nato začnite nov krog.</p>
+    <div class="card" id="resultsList"></div>
+    <div class="button-gap">
+      <button class="primary" id="againBtn">Igraj nov krog ↻</button>
+      <button class="quiet" id="homeBtn">Nazaj v glavni meni</button>
+    </div>
+  </section>
+  <div class="footer">Vsiljivec · za vašo družbo · brez računov in sledenja</div>
+</main>
+<script>
+(() => {
+  const words = {
+    food: [
+      {word:"Pica", hint:"Italija"},
+      {word:"Suši", hint:"Palčke"},
+      {word:"Palačinke", hint:"Nedelja"},
+      {word:"Sladoled", hint:"Možgani"},
+      {word:"Lazanja", hint:"Plasti"},
+      {word:"Pokovka", hint:"Kino"},
+      {word:"Lubenica", hint:"Poletje"},
+      {word:"Čokolada", hint:"Folija"},
+      {word:"Cmoki", hint:"Nadev"},
+      {word:"Tortilja", hint:"Zavitek"},
+      {word:"Limonada", hint:"Kislo"},
+      {word:"Rogljiček", hint:"Francija"},
+      {word:"Testenine", hint:"Vilice"},
+      {word:"Burger", hint:"Papir"},
+      {word:"Jagode", hint:"Peclji"},
+      {word:"Prestice", hint:"Vozel"},
+      {word:"Cimetova rolica", hint:"Spirala"},
+      {word:"Krofi", hint:"Luknja"}
+    ],
+    animals: [
+      {word:"Pingvin", hint:"Kolonija"},
+      {word:"Delfin", hint:"Ocean"},
+      {word:"Jež", hint:"Listje"},
+      {word:"Žirafa", hint:"Višina"},
+      {word:"Hobotnica", hint:"Lovke"},
+      {word:"Lisica", hint:"Zvijača"},
+      {word:"Sova", hint:"Mrak"},
+      {word:"Želva", hint:"Oklep"},
+      {word:"Kenguru", hint:"Žep"},
+      {word:"Flamingo", hint:"Ravnotežje"},
+      {word:"Volk", hint:"Luna"},
+      {word:"Hrček", hint:"Zaloga"},
+      {word:"Krokodil", hint:"Močvirje"},
+      {word:"Metulj", hint:"Preobrazba"},
+      {word:"Panda", hint:"Bambus"},
+      {word:"Rakun", hint:"Maska"},
+      {word:"Orel", hint:"Termika"},
+      {word:"Žaba", hint:"Mlaka"}
+    ],
+    places: [
+      {word:"Letališče", hint:"Zamuda"},
+      {word:"Plaža", hint:"Plima"},
+      {word:"Knjižnica", hint:"Tišina"},
+      {word:"Bolnišnica", hint:"Čakalnica"},
+      {word:"Kino", hint:"Tema"},
+      {word:"Živalski vrt", hint:"Ograja"},
+      {word:"Muzej", hint:"Steklo"},
+      {word:"Šola", hint:"Odmor"},
+      {word:"Supermarket", hint:"Voziček"},
+      {word:"Kamp", hint:"Kolčki"},
+      {word:"Železniška postaja", hint:"Peron"},
+      {word:"Zabaviščni park", hint:"Vrtiljak"},
+      {word:"Restavracija", hint:"Račun"},
+      {word:"Akvarij", hint:"Steklo"},
+      {word:"Grad", hint:"Obzidje"},
+      {word:"Telovadnica", hint:"Blazine"},
+      {word:"Vesoljska postaja", hint:"Breztežnost"},
+      {word:"Hotel", hint:"Recepcija"}
+    ],
+    objects: [
+      {word:"Dežnik", hint:"Prepih"},
+      {word:"Zobna ščetka", hint:"Emajl"},
+      {word:"Nahrbtnik", hint:"Trakovi"},
+      {word:"Slušalke", hint:"Izolacija"},
+      {word:"Svetilka", hint:"Žarek"},
+      {word:"Kovček", hint:"Tovor"},
+      {word:"Budilka", hint:"Ponedeljek"},
+      {word:"Sončna očala", hint:"Bleščanje"},
+      {word:"Daljinec", hint:"Kavč"},
+      {word:"Kolo", hint:"Veriga"},
+      {word:"Blazina", hint:"Perje"},
+      {word:"Ogledalo", hint:"Odsev"},
+      {word:"Steklenica za vodo", hint:"Požirek"},
+      {word:"Tipkovnica", hint:"Bližnjice"},
+      {word:"Škarje", hint:"Šiv"},
+      {word:"Daljnogled", hint:"Obzorje"},
+      {word:"Rolka", hint:"Asfalt"},
+      {word:"Denarnica", hint:"Usnje"}
+    ],
+    movies: [
+      {word:"Šrek", hint:"Močvirje"},
+      {word:"Batman", hint:"Netopir"},
+      {word:"Harry Potter", hint:"Sova"},
+      {word:"Spider-Man", hint:"Mreža"},
+      {word:"Ledeno kraljestvo", hint:"Odtajanje"},
+      {word:"Levji kralj", hint:"Savanna"},
+      {word:"Jurski park", hint:"Fosil"},
+      {word:"Vojna zvezd", hint:"Sila"},
+      {word:"Reševanje malega Nema", hint:"Tok"},
+      {word:"Svet igrač", hint:"Pod posteljo"},
+      {word:"Wednesday", hint:"Družina"},
+      {word:"Minioni", hint:"Banana"},
+      {word:"Simpsonovi", hint:"Kavč"},
+      {word:"Spuži Kvadratnik", hint:"Ananas"},
+      {word:"Superman", hint:"Kriptonit"},
+      {word:"Kung Fu Panda", hint:"Cmok"},
+      {word:"Maščevalci", hint:"Neskončnost"},
+      {word:"Neverjetni", hint:"Preobleka"}
+    ]
+  };
+  const allBuiltInItems = [...words.food, ...words.animals, ...words.places, ...words.objects, ...words.movies];
+  words.mixed = [...new Map(allBuiltInItems.map(item => [item.word, item])).values()];
+  const $ = id => document.getElementById(id);
+  let players = ["Igralec 1","Igralec 2","Igralec 3","Igralec 4"];
+  let roles = [];
+  let word = "";
+  let current = 0;
+  let imposterTotal = 1;
+  let category = "mixed";
+
+  function show(id) {
+    if (id !== "reveal" && typeof setRoleVisible === "function") setRoleVisible(false);
+    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+  function renderPlayers() {
+    const list = $("playerList");
+    list.innerHTML = "";
+    players.forEach((name, i) => {
+      const row = document.createElement("div");
+      row.className = "player-row";
+      const num = document.createElement("div");
+      num.className = "player-num";
+      num.textContent = i + 1;
+      const input = document.createElement("input");
+      input.type = "text"; input.maxLength = 22; input.placeholder = `Igralec ${i+1}`;
+      input.setAttribute("aria-label", `Player ${i+1} name`);
+      input.value = name.startsWith("Igralec ") && name === `Igralec ${i+1}` ? "" : name;
+      input.addEventListener("input", () => { players[i] = input.value; });
+      const remove = document.createElement("button");
+      remove.className = "remove"; remove.type = "button"; remove.textContent = "×";
+      remove.setAttribute("aria-label", `Remove player ${i+1}`);
+      remove.disabled = players.length <= 3;
+      remove.addEventListener("click", () => {
+        players.splice(i,1); renderPlayers();
+      });
+      row.append(num,input,remove);
+      list.append(row);
+    });
+    $("addPlayer").disabled = players.length >= 16;
+  }
+  function setupRound() {
+    const names = [...document.querySelectorAll("#playerList input")].map((input,i) => input.value.trim() || `Igralec ${i+1}`);
+    if (names.length < 3) {
+      $("setupError").textContent = "You need at least 3 players.";
+      $("setupError").classList.add("show"); return;
+    }
+    players = names;
+    imposterTotal = Number($("imposterCount").value);
+    if (imposterTotal >= players.length - 1) {
+      $("setupError").textContent = "There must be at least two non-imposters. Choose fewer imposters.";
+      $("setupError").classList.add("show"); return;
+    }
+    $("setupError").classList.remove("show");
+    category = $("category").value;
+    const isCustomCategory = category === "custom" || !!getCustomCategories()[category];
+    const customItems = isCustomCategory ? getCustomWords(category) : [];
+    if (isCustomCategory && customItems.length === 0) {
+      $("setupError").textContent = "Pred začetkom dodaj vsaj eno besedo v izbrano kategorijo.";
+      $("setupError").classList.add("show"); return;
+    }
+    const pool = isCustomCategory ? customItems : (words[category] || words.mixed);
+    const chosenIndex = Math.floor(Math.random() * pool.length);
+    const selectedItem = pool[chosenIndex];
+    word = selectedItem.word;
+    const selectedHint = selectedItem.hint || "";
+    const imposterIndexes = new Set(shuffle(players.map((_,i) => i)).slice(0, imposterTotal));
+    roles = players.map((name,i) => ({
+      name,
+      imposter: imposterIndexes.has(i),
+      word: imposterIndexes.has(i) ? "" : word,
+      hint: selectedHint
+    }));
+    current = 0;
+    revealRole();
+  }
+  const playerPalettes = [
+    {bg:"#ffeb3b", soft:"#fff0a8"},
+    {bg:"#c9e8ff", soft:"#e8f5ff"},
+    {bg:"#ffd8e5", soft:"#ffedf3"},
+    {bg:"#ccefd8", soft:"#e8f8ed"},
+    {bg:"#e3d7ff", soft:"#f1ebff"},
+    {bg:"#ffd9b8", soft:"#fff0e2"},
+    {bg:"#c9eee9", soft:"#e8f9f6"},
+    {bg:"#f5d4ff", soft:"#fbecff"}
+  ];
+  let roleIsVisible = false;
+  let currentSecretText = "";
+  function setRoleVisible(visible) {
+    roleIsVisible = visible;
+    $("hideBtn").disabled = visible;
+    $("secretWord").textContent = currentSecretText;
+    if (!visible) {
+      const cover = $("cardCover");
+      cover.classList.remove("dragging");
+      cover.style.transform = "translateY(0)";
+    }
+  }
+  function positionCover() {
+    const card = $("revealCard");
+    const secret = $("secretWord");
+    const cover = $("cardCover");
+    const cardRect = card.getBoundingClientRect();
+    const secretRect = secret.getBoundingClientRect();
+    cover.style.top = `${Math.max(0, secretRect.top - cardRect.top - 2)}px`;
+  }
+
+  function revealRole() {
+    const role = roles[current];
+    const palette = playerPalettes[current % playerPalettes.length];
+    const card = $("revealCard");
+    card.style.setProperty("--player-bg", palette.bg);
+    card.style.setProperty("--player-soft", palette.soft);
+    $("revealCount").textContent = `IGRALEC ${current+1}`;
+    $("currentPlayerName").textContent = role.name;
+    const secretBox = $("secretWord");
+    secretBox.classList.toggle("secret-imposter", role.imposter);
+    secretBox.classList.toggle("secret-word", !role.imposter);
+    currentSecretText = role.imposter
+      ? `YOU ARE THE IMPOSTER\nNamig: ${role.hint || "Namig ni dodan"}`
+      : role.word;
+    secretBox.textContent = currentSecretText;
+    setRoleVisible(false);
+    show("reveal");
+    requestAnimationFrame(() => {
+      positionCover();
+      requestAnimationFrame(positionCover);
+    });
+  }
+  function hideRole() {
+    setRoleVisible(false);
+    current++;
+    if (current < players.length) revealRole();
+    else show("ready");
+  }
+  // Lift the single cover layer while the finger is held; release always hides the role.
+  const cardCover = $("cardCover");
+  let coverPointerId = null;
+  let coverStartY = 0;
+  let coverOffset = 0;
+  const maxCoverLift = () => Math.max(70, $("secretWord").offsetHeight + 18);
+  cardCover.addEventListener("pointerdown", (event) => {
+    if (coverPointerId !== null) return;
+    positionCover();
+    coverPointerId = event.pointerId;
+    coverStartY = event.clientY;
+    coverOffset = 0;
+    cardCover.classList.add("dragging");
+    cardCover.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  cardCover.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== coverPointerId) return;
+    coverOffset = Math.max(0, Math.min(maxCoverLift(), coverStartY - event.clientY));
+    cardCover.style.transform = `translateY(${-coverOffset}px)`;
+    if (coverOffset > 18) {
+      roleIsVisible = true;
+      $("hideBtn").disabled = true;
+    }
+    event.preventDefault();
+  });
+  function releaseCover(event) {
+    if (coverPointerId === null || (event && event.pointerId !== coverPointerId)) return;
+    coverPointerId = null;
+    roleIsVisible = false;
+    $("hideBtn").disabled = false;
+    cardCover.classList.remove("dragging");
+    cardCover.style.transform = "translateY(0)";
+  }
+  cardCover.addEventListener("pointerup", releaseCover);
+  cardCover.addEventListener("pointercancel", releaseCover);
+  cardCover.addEventListener("lostpointercapture", releaseCover);
+
+  function showResults() {
+    const list = $("resultsList");
+    list.innerHTML = "";
+    const wordRow = document.createElement("div");
+    wordRow.className = "results-row";
+    const wordLabel = document.createElement("strong");
+    wordLabel.textContent = "Secret word";
+    const wordValue = document.createElement("span");
+    wordValue.className = "result-tag role-word";
+    wordValue.textContent = word;
+    wordRow.append(wordLabel,wordValue);
+    list.append(wordRow);
+    roles.forEach(role => {
+      const row = document.createElement("div");
+      row.className = "results-row";
+      const name = document.createElement("span");
+      name.textContent = role.name;
+      const tag = document.createElement("span");
+      tag.className = "result-tag " + (role.imposter ? "role-imposter" : "role-word");
+      tag.textContent = role.imposter ? "Vsiljivec" : "Nedolžen";
+      row.append(name,tag);
+      if (role.imposter && role.hint) {
+        const hint = document.createElement("span");
+        hint.style.cssText = "font-size:11px;color:#99582f;margin-left:8px";
+        hint.textContent = `Namig: ${role.hint}`;
+        row.append(hint);
+      }
+      list.append(row);
+    });
+    show("results");
+  }
+  const CUSTOM_KEY = "imposter-custom-words-v1";
+  const CATEGORIES_KEY = "imposter-user-categories-v1";
+  let customExtraRows = 0;
+  let currentEditCategory = "custom";
+  function getCustomCategories() {
+    try { const x = JSON.parse(localStorage.getItem(CATEGORIES_KEY) || "{}"); return x && typeof x === "object" && !Array.isArray(x) ? x : {}; } catch (_) { return {}; }
+  }
+  function saveCustomCategories(x) { try { localStorage.setItem(CATEGORIES_KEY, JSON.stringify(x)); } catch (_) {} }
+  function getCustomWords(categoryId = currentEditCategory) {
+    if (categoryId !== "custom") return (getCustomCategories()[categoryId]?.items || []).filter(x => x && typeof x.word === "string" && x.word.trim());
+    try { const saved = JSON.parse(localStorage.getItem(CUSTOM_KEY) || "[]"); return Array.isArray(saved) ? saved.filter(x => x && typeof x.word === "string" && x.word.trim()) : []; } catch (_) { return []; }
+  }
+  function saveCustomWords(items, categoryId = currentEditCategory) {
+    if (categoryId === "custom") { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(items)); } catch (_) {} return; }
+    const cats = getCustomCategories(); if (!cats[categoryId]) return; cats[categoryId].items = items; saveCustomCategories(cats);
+  }
+  function refreshCategoryOptions(selectId) {
+    const select = $(selectId); if (!select) return;
+    const previous = select.value;
+    [...select.querySelectorAll('option[data-user-category="1"]')].forEach(o => o.remove());
+    const cats = getCustomCategories();
+    Object.entries(cats).forEach(([id, cat]) => { const opt = document.createElement("option"); opt.value = id; opt.textContent = cat.name; opt.dataset.userCategory = "1"; select.append(opt); });
+    if ([...select.options].some(o => o.value === previous)) select.value = previous;
+  }
+  function renderCustomWords() {
+    const list = $("customWordsList"); if (!list) return;
+    const catId = $("category").value;
+    currentEditCategory = catId;
+    const items = getCustomWords(catId); list.innerHTML = "";
+    $("wordsEditorTitle").textContent = catId === "custom" ? "Moje besede" : (getCustomCategories()[catId]?.name || "Besede kategorije");
+    const count = Math.max(4, items.length + customExtraRows);
+    for (let i = 0; i < count; i++) {
+      const item = items[i] || {word:"", hint:""};
+      const row = document.createElement("div"); row.className = "custom-word-row";
+      const index = document.createElement("div"); index.className = "word-index"; index.textContent = `Beseda ${i + 1}`;
+      const wordInput = document.createElement("input"); wordInput.type = "text"; wordInput.maxLength = 60; wordInput.placeholder = "Prava beseda"; wordInput.value = item.word || "";
+      const hintInput = document.createElement("input"); hintInput.type = "text"; hintInput.maxLength = 100; hintInput.placeholder = "Kratek namig"; hintInput.value = item.hint || "";
+      const remove = document.createElement("button"); remove.className = "remove"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", `Počisti besedo ${i+1}`);
+      function persist() { const rows = [...list.querySelectorAll(".custom-word-row")]; const next = rows.map(r => ({word:r.querySelectorAll("input")[0].value.trim(),hint:r.querySelectorAll("input")[1].value.trim()})).filter(x => x.word); saveCustomWords(next, catId); }
+      remove.addEventListener("click", () => { wordInput.value = ""; hintInput.value = ""; persist(); });
+      wordInput.addEventListener("input", persist); hintInput.addEventListener("input", persist);
+      row.append(index, wordInput, hintInput, remove); list.append(row);
+    }
+  }
+  function syncCustomField() {
+    const value = $("category").value;
+    $("customWordsField").style.display = (value === "custom" || !!getCustomCategories()[value]) ? "block" : "none";
+    if (value === "custom" || getCustomCategories()[value]) renderCustomWords();
+  }
+  function exportData() {
+    const payload = {format:"imposter-categories", version:1, exportedAt:new Date().toISOString(), categories:getCustomCategories(), legacyWords:getCustomWords("custom")};
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href=url; a.download="imposter-kategorije.json"; a.click(); URL.revokeObjectURL(url);
+    $("dataMessage").textContent = "Kategorije so izvožene v datoteko JSON.";
+  }
+  function importDataFile(file) {
+    if (!file) return; const reader = new FileReader();
+    reader.onload = () => { try {
+      const data = JSON.parse(String(reader.result));
+      const imported = data.categories || data.customCategories;
+      if (!imported || typeof imported !== "object" || Array.isArray(imported)) throw new Error("Datoteka nima prepoznanih kategorij.");
+      const existing = getCustomCategories();
+      Object.entries(imported).forEach(([id,cat]) => { if (cat && typeof cat.name === "string" && Array.isArray(cat.items)) { const safeId = /^[a-zA-Z0-9_-]+$/.test(id) ? id : "cat_"+Math.random().toString(36).slice(2,10); existing[safeId] = {name:cat.name.slice(0,40), items:cat.items.filter(x=>x&&typeof x.word==="string"&&x.word.trim()).map(x=>({word:x.word.trim().slice(0,60),hint:typeof x.hint==="string"?x.hint.slice(0,100):""}))}; } });
+      saveCustomCategories(existing); if (Array.isArray(data.legacyWords)) saveCustomWords(data.legacyWords,"custom"); refreshCategoryOptions("category"); refreshCategoryOptions("category"); syncCustomField(); $("dataMessage").textContent = "Uvoz je uspel. Uvožene kategorije so dodane oziroma posodobljene.";
+    } catch(e) { $("dataMessage").textContent = "Uvoz ni uspel: izberi veljavno datoteko JSON, izvoženo iz igre."; } };
+    reader.readAsText(file);
+  }
+  window.addEventListener("resize", () => { if ($("reveal").classList.contains("active")) positionCover(); });
+  refreshCategoryOptions("category");
+  $("category").addEventListener("change", syncCustomField);
+  $("addCustomWord").addEventListener("click", () => { customExtraRows++; renderCustomWords(); });
+  $("createCategory").addEventListener("click", () => {
+    const name = $("newCategoryName").value.trim(); if (!name) { $("dataMessage").textContent = "Najprej vpiši ime kategorije."; return; }
+    const cats = getCustomCategories(); const id = "cat_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); cats[id] = {name,items:[]}; saveCustomCategories(cats); refreshCategoryOptions("category"); $("category").value=id; $("newCategoryName").value=""; customExtraRows=0; syncCustomField(); $("dataMessage").textContent = `Kategorija »${name}« je ustvarjena.`;
+  });
+  $("deleteCategory").addEventListener("click", () => { const id=$("category").value; const cats=getCustomCategories(); if (!cats[id]) { $("dataMessage").textContent="Za brisanje izberi svojo kategorijo."; return; } if (confirm(`Res izbrišem kategorijo »${cats[id].name}«?`)) { delete cats[id]; saveCustomCategories(cats); refreshCategoryOptions("category"); $("category").value="mixed"; syncCustomField(); $("dataMessage").textContent="Kategorija je izbrisana."; } });
+  $("exportData").addEventListener("click", exportData);
+  $("importData").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", e => { importDataFile(e.target.files[0]); e.target.value=""; });
+    $("setupBtn").addEventListener("click", () => { players = ["Igralec 1","Igralec 2","Igralec 3","Igralec 4"]; renderPlayers(); show("setup"); });
+  $("addPlayer").addEventListener("click", () => { if (players.length < 16) { players.push(""); renderPlayers(); const inputs = document.querySelectorAll("#playerList input"); inputs[inputs.length-1].focus(); } });
+  $("backHome").addEventListener("click", () => show("home"));
+  $("startBtn").addEventListener("click", setupRound);
+  $("hideBtn").addEventListener("click", hideRole);
+  $("closeApp").addEventListener("click", () => { setRoleVisible(false); show("home"); });
+  $("resultsBtn").addEventListener("click", showResults);
+  $("newRoundBtn").addEventListener("click", () => { renderPlayers(); show("setup"); });
+  $("againBtn").addEventListener("click", () => { renderPlayers(); show("setup"); });
+  $("homeBtn").addEventListener("click", () => show("home"));
+})();
+
+  let installPrompt = null;
+  const installBtn = document.getElementById('installAppBtn');
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault(); installPrompt = event; installBtn.style.display = 'inline-block';
+  });
+  installBtn.addEventListener('click', async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+      installPrompt = null;
+    } else {
+      alert('V Chromu pritisni ⋮ (meni) in izberi »Dodaj na začetni zaslon« ali »Namesti aplikacijo«.');
+    }
+  });
+  window.addEventListener('appinstalled', () => { installBtn.textContent = '✓ Vsiljivec je nameščen'; });
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>
